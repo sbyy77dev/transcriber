@@ -21,6 +21,8 @@ def home(request: Request):
         name="index.html",
         context={
             "transcript": None,
+            "mp3_url": None,
+            "txt_url": None,
         },
     )
 
@@ -31,6 +33,7 @@ async def transcribe(
     file: UploadFile = File(...),
     language: str = Form("ko"),
     model_name: str = Form("small"),
+    action: str = Form("both"),
 ):
     ensure_directories()
 
@@ -45,26 +48,73 @@ async def transcribe(
     content = await file.read()
     input_file.write_bytes(content)
 
-    extract_audio_to_wav(input_file, wav_file)
-    extract_audio_to_mp3(input_file, mp3_file)
+    transcript = None
+    mp3_url = None
+    txt_url = None
 
-    transcribe_audio_to_txt(
-        wav_file,
-        txt_file,
-        model_name=model_name,
-        language=language,
-        include_timestamps=True,
-    )
+    print(f"선택된 작업: {action}")
 
-    transcript = txt_file.read_text(encoding="utf-8")
-    
+    if action == "mp3_only":
+        print("MP3만 생성합니다.")
+        extract_audio_to_mp3(input_file, mp3_file)
+        mp3_url = f"/download/{mp3_file.name}"
+
+    elif action == "transcript_only":
+        print("MP3는 만들지 않고, WAV 생성 후 받아쓰기만 진행합니다.")
+        extract_audio_to_wav(input_file, wav_file)
+
+        transcribe_audio_to_txt(
+            wav_file,
+            txt_file,
+            model_name=model_name,
+            language=language,
+            include_timestamps=True,
+        )
+
+        transcript = txt_file.read_text(encoding="utf-8")
+        txt_url = f"/download/{txt_file.name}"
+
+    elif action == "both":
+        print("MP3 생성과 받아쓰기를 모두 진행합니다.")
+        extract_audio_to_wav(input_file, wav_file)
+        extract_audio_to_mp3(input_file, mp3_file)
+
+        transcribe_audio_to_txt(
+            wav_file,
+            txt_file,
+            model_name=model_name,
+            language=language,
+            include_timestamps=True,
+        )
+
+        transcript = txt_file.read_text(encoding="utf-8")
+        mp3_url = f"/download/{mp3_file.name}"
+        txt_url = f"/download/{txt_file.name}"
+
+    else:
+        print(f"알 수 없는 작업입니다. 기본값 both로 처리합니다: {action}")
+        extract_audio_to_wav(input_file, wav_file)
+        extract_audio_to_mp3(input_file, mp3_file)
+
+        transcribe_audio_to_txt(
+            wav_file,
+            txt_file,
+            model_name=model_name,
+            language=language,
+            include_timestamps=True,
+        )
+
+        transcript = txt_file.read_text(encoding="utf-8")
+        mp3_url = f"/download/{mp3_file.name}"
+        txt_url = f"/download/{txt_file.name}"
+
     return templates.TemplateResponse(
         request=request,
         name="index.html",
         context={
             "transcript": transcript,
-            "mp3_url": f"/download/{mp3_file.name}",
-            "txt_url": f"/download/{txt_file.name}",
+            "mp3_url": mp3_url,
+            "txt_url": txt_url,
         },
     )
 
