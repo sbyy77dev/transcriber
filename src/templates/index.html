@@ -3,24 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <title>Transcriber</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            color: #222;
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 60px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            padding: 36px;
+        }
+
+        .title {
+            margin: 0 0 10px;
+            font-size: 32px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .subtitle {
+            margin: 0 0 32px;
+            text-align: center;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .upload-box {
+            display: block;
+            width: 100%;
+            border: 2px dashed #b8c2d6;
+            border-radius: 16px;
+            padding: 36px 24px;
+            text-align: center;
+            background: #fafbff;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .upload-box.drag-over {
+            border-color: #4f7cff;
+            background: #eef3ff;
+        }
+
+        .upload-icon {
+            font-size: 42px;
+            margin-bottom: 12px;
+        }
+
+        .upload-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .upload-desc {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .file-name {
+            margin-top: 18px;
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .option-row {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .option-row label {
+            width: 120px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .option-row select {
+            flex: 1;
+            padding: 12px 14px;
+            border: 1px solid #ccd3e0;
+            border-radius: 10px;
+            font-size: 15px;
+            background: #fff;
+        }
+
+        .submit-button {
+            width: 100%;
+            margin-top: 28px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: #4f7cff;
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .submit-button:hover {
+            background: #3f68d8;
+        }
+
+        .submit-button:disabled {
+            background: #aeb8cc;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            margin-top: 36px;
+            padding-top: 28px;
+            border-top: 1px solid #e5e8f0;
+        }
+
+        .section-title {
+            margin: 0 0 14px;
+            font-size: 22px;
+        }
+
+        .transcript-box {
+            max-height: 360px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            background: #f7f8fc;
+            border: 1px solid #e1e5ef;
+            border-radius: 12px;
+            padding: 18px;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        .download-list {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 0;
+            margin: 16px 0 0;
+            list-style: none;
+        }
+
+        .download-list a {
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: #eef3ff;
+            color: #315bdc;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .download-list a:hover {
+            background: #dfe8ff;
+        }
+
+        .notice {
+            margin-top: 18px;
+            color: #777;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
 </head>
 <body>
-    <h1>영상/음성 받아쓰기 변환기</h1>
+    <main class="page">
+        <div class="container">
+            <h1 class="title">Transcriber</h1>
+            <p class="subtitle">
+                MKV, MP4, AVI, MOV, WEBM, MP3, WAV 파일을 업로드하면<br>
+                MP3 파일과 시간 정보가 포함된 받아쓰기 TXT 파일을 생성합니다.
+            </p>
 
-    <form action="/transcribe" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".mkv,.mp4,.avi,.mov,.webm,.mp3,.wav,.m4a" required>
-        <button type="submit">변환 시작</button>
-    </form>
+            <form id="uploadForm" action="/transcribe" method="post" enctype="multipart/form-data">
+                <label id="uploadBox" class="upload-box" for="fileInput">
+                    <div class="upload-icon">🎧</div>
+                    <div class="upload-title">파일을 드래그하거나 클릭해서 업로드</div>
+                    <div class="upload-desc">
+                        지원 형식: .mkv, .mp4, .avi, .mov, .webm, .mp3, .wav, .m4a
+                    </div>
+                    <div id="fileName" class="file-name">선택된 파일 없음</div>
+                </label>
 
-    {% if transcript %}
-        <h2>받아쓰기 결과</h2>
-        <pre>{{ transcript }}</pre>
+                <input
+                    id="fileInput"
+                    type="file"
+                    name="file"
+                    accept=".mkv,.mp4,.avi,.mov,.webm,.mp3,.wav,.m4a"
+                    required
+                >
 
-        <h2>다운로드</h2>
-        <ul>
-            <li><a href="{{ mp3_url }}">MP3 다운로드</a></li>
-            <li><a href="{{ txt_url }}">TXT 다운로드</a></li>
-        </ul>
-    {% endif %}
+                <div class="option-row">
+                    <label for="language">언어</label>
+                    <select id="language" name="language">
+                        <option value="ko" selected>한국어</option>
+                        <option value="en">영어</option>
+                        <option value="ja">일본어</option>
+                        <option value="zh">중국어</option>
+                    </select>
+                </div>
+
+                <div class="option-row">
+                    <label for="modelName">모델</label>
+                    <select id="modelName" name="model_name">
+                        <option value="base">base, 빠름 / 정확도 낮음</option>
+                        <option value="small" selected>small, 기본 추천</option>
+                        <option value="medium">medium, 느림 / 정확도 높음</option>
+                    </select>
+                </div>
+
+                <button id="submitButton" class="submit-button" type="submit">
+                    변환 시작
+                </button>
+
+                <p class="notice">
+                    긴 영상은 변환 시간이 오래 걸릴 수 있습니다. 처음 테스트는 짧은 영상으로 진행하는 것을 추천합니다.
+                </p>
+            </form>
+
+            {% if transcript %}
+                <section class="result-section">
+                    <h2 class="section-title">받아쓰기 결과</h2>
+                    <div class="transcript-box">{{ transcript }}</div>
+
+                    <h2 class="section-title" style="margin-top: 28px;">다운로드</h2>
+                    <ul class="download-list">
+                        <li><a href="{{ mp3_url }}">MP3 다운로드</a></li>
+                        <li><a href="{{ txt_url }}">TXT 다운로드</a></li>
+                    </ul>
+                </section>
+            {% endif %}
+        </div>
+    </main>
+
+    <script>
+        const uploadBox = document.getElementById("uploadBox");
+        const fileInput = document.getElementById("fileInput");
+        const fileName = document.getElementById("fileName");
+        const uploadForm = document.getElementById("uploadForm");
+        const submitButton = document.getElementById("submitButton");
+
+        function updateFileName(file) {
+            if (file) {
+                fileName.textContent = `선택된 파일: ${file.name}`;
+            } else {
+                fileName.textContent = "선택된 파일 없음";
+            }
+        }
+
+        fileInput.addEventListener("change", () => {
+            updateFileName(fileInput.files[0]);
+        });
+
+        uploadBox.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            uploadBox.classList.add("drag-over");
+        });
+
+        uploadBox.addEventListener("dragleave", () => {
+            uploadBox.classList.remove("drag-over");
+        });
+
+        uploadBox.addEventListener("drop", (event) => {
+            event.preventDefault();
+            uploadBox.classList.remove("drag-over");
+
+            const droppedFile = event.dataTransfer.files[0];
+
+            if (!droppedFile) {
+                return;
+            }
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(droppedFile);
+            fileInput.files = dataTransfer.files;
+
+            updateFileName(droppedFile);
+        });
+
+        uploadForm.addEventListener("submit", () => {
+            submitButton.disabled = true;
+            submitButton.textContent = "변환 중입니다...";
+        });
+    </script>
 </body>
 </html>

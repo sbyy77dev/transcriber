@@ -1,7 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, File, Request, UploadFile
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 
@@ -26,7 +26,12 @@ def home(request: Request):
 
 
 @app.post("/transcribe")
-async def transcribe(request: Request, file: UploadFile = File(...)):
+async def transcribe(
+    request: Request,
+    file: UploadFile = File(...),
+    language: str = Form("ko"),
+    model_name: str = Form("small"),
+):
     ensure_directories()
 
     original_suffix = Path(file.filename).suffix
@@ -46,11 +51,13 @@ async def transcribe(request: Request, file: UploadFile = File(...)):
     transcribe_audio_to_txt(
         wav_file,
         txt_file,
+        model_name=model_name,
+        language=language,
         include_timestamps=True,
     )
 
     transcript = txt_file.read_text(encoding="utf-8")
-
+    
     return templates.TemplateResponse(
         request=request,
         name="index.html",
