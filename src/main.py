@@ -28,7 +28,11 @@ def main() -> None:
         print(f"MP3 생성 완료: {mp3_file}")
 
         print("3단계: Whisper 받아쓰기 진행 중...")
-        transcribe_audio_to_txt(wav_file, transcript_file)
+        transcribe_audio_to_txt(
+            wav_file,
+            transcript_file,
+            include_timestamps=True,
+        )
         print(f"받아쓰기 완료: {transcript_file}")
 
     except FileNotFoundError as error:
