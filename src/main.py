@@ -2,6 +2,7 @@ import subprocess
 
 from config import INPUT_DIR, OUTPUT_DIR, TEMP_DIR, ensure_directories
 from services.audio_service import extract_audio_to_mp3, extract_audio_to_wav
+from services.transcription_service import transcribe_audio_to_txt
 
 
 def main() -> None:
@@ -10,6 +11,7 @@ def main() -> None:
     input_file = INPUT_DIR / "sample.mkv"
     wav_file = TEMP_DIR / "sample.wav"
     mp3_file = OUTPUT_DIR / "sample.mp3"
+    transcript_file = OUTPUT_DIR / "sample_transcript.txt"
 
     if not input_file.exists():
         print(f"입력 파일이 없습니다: {input_file}")
@@ -24,6 +26,10 @@ def main() -> None:
         print("2단계: 사용자 제공용 MP3 파일 생성 중...")
         extract_audio_to_mp3(input_file, mp3_file)
         print(f"MP3 생성 완료: {mp3_file}")
+
+        print("3단계: Whisper 받아쓰기 진행 중...")
+        transcribe_audio_to_txt(wav_file, transcript_file)
+        print(f"받아쓰기 완료: {transcript_file}")
 
     except FileNotFoundError as error:
         print(error)
