@@ -1,8 +1,8 @@
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from src.config import INPUT_DIR, OUTPUT_DIR, TEMP_DIR, ensure_directories
@@ -14,6 +14,24 @@ app = FastAPI()
 templates = Jinja2Templates(directory="src/templates")
 
 
+def cleanup_generated_files(file_id: str) -> None:
+    """
+    특정 변환 작업에서 생성된 원본/임시/결과 파일을 삭제합니다.
+    file_id는 uuid4().hex로 생성된 값만 허용합니다.
+    """
+    try:
+        UUID(file_id)
+    except ValueError:
+        return
+
+    target_dirs = [INPUT_DIR, TEMP_DIR, OUTPUT_DIR]
+
+    for target_dir in target_dirs:
+        for file_path in target_dir.glob(f"{file_id}*"):
+            if file_path.is_file():
+                file_path.unlink()
+
+
 @app.get("/")
 def home(request: Request):
     return templates.TemplateResponse(
@@ -23,6 +41,7 @@ def home(request: Request):
             "transcript": None,
             "mp3_url": None,
             "txt_url": None,
+            "cleanup_url": None,
         },
     )
 
@@ -115,6 +134,7 @@ async def transcribe(
             "transcript": transcript,
             "mp3_url": mp3_url,
             "txt_url": txt_url,
+            "cleanup_url": f"/cleanup/{file_id}",
         },
     )
 
@@ -131,3 +151,9 @@ def download_file(filename: str):
         filename=filename,
         media_type="application/octet-stream",
     )
+
+
+@app.get("/cleanup/{file_id}")
+def cleanup_files(file_id: str):
+    cleanup_generated_files(file_id)
+    return RedirectResponse(url="/", status_code=303)
