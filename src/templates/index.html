@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Transcriber</title>
+</head>
+<body>
+    <h1>영상/음성 받아쓰기 변환기</h1>
+
+    <form action="/transcribe" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".mkv,.mp4,.avi,.mov,.webm,.mp3,.wav,.m4a" required>
+        <button type="submit">변환 시작</button>
+    </form>
+
+    {% if transcript %}
+        <h2>받아쓰기 결과</h2>
+        <pre>{{ transcript }}</pre>
+
+        <h2>다운로드</h2>
+        <ul>
+            <li><a href="{{ mp3_url }}">MP3 다운로드</a></li>
+            <li><a href="{{ txt_url }}">TXT 다운로드</a></li>
+        </ul>
+    {% endif %}
+</body>
+</html>
