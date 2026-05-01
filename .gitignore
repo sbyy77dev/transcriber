@@ -1,0 +1,23 @@
+# virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# input/output files
+input/*
+output/*
+temp/*
+
+# keep folders
+!input/.gitkeep
+!output/.gitkeep
+!temp/.gitkeep
+
+# environment
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
