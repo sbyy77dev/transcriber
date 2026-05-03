@@ -270,7 +270,15 @@ function setupNavigationMenu() {
         menuOverlay.classList.remove("open");
     }
 
-    menuButton.addEventListener("click", openMenu);
+    function toggleMenu() {
+        if (sideMenu.classList.contains("open")) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    }
+
+    menuButton.addEventListener("click", toggleMenu);
     closeMenuButton.addEventListener("click", closeMenu);
     menuOverlay.addEventListener("click", closeMenu);
 }
