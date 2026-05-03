@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>MP3 Merge - Transcriber</title>
+    <link rel="stylesheet" href="/static/styles.css?v=2">
+</head>
+
+<body>
+    <main class="page">
+        <div class="container">
+            <h1 class="title">MP3 Merge</h1>
+
+            <p class="subtitle">
+                여러 개의 MKV, MP4, AVI, MOV, WEBM, MP3, WAV 파일을 업로드하고<br>
+                원하는 순서대로 하나의 MP3 파일로 합칠 수 있습니다.
+            </p>
+
+            <div class="notice" style="margin-bottom: 22px;">
+                <a href="/">← 단일 파일 변환/받아쓰기 페이지로 돌아가기</a>
+            </div>
+
+            <form id="mergeForm" enctype="multipart/form-data">
+                <label id="mergeUploadBox" class="upload-box" for="mergeFileInput">
+                    <div class="upload-icon">🎬</div>
+                    <div class="upload-title">여러 파일을 드래그하거나 클릭해서 업로드</div>
+                    <div class="upload-desc">
+                        지원 형식: .mkv, .mp4, .avi, .mov, .webm, .mp3, .wav, .m4a<br>
+                        선택한 순서대로 목록에 추가됩니다.
+                    </div>
+                    <div id="mergeFileCount" class="file-name">선택된 파일 없음</div>
+                </label>
+
+                <input
+                    id="mergeFileInput"
+                    type="file"
+                    name="files"
+                    accept=".mkv,.mp4,.avi,.mov,.webm,.mp3,.wav,.m4a"
+                    multiple
+                    required
+                >
+
+                <section id="fileListSection" class="result-section" style="display: none;">
+                    <h2 class="section-title">병합 순서</h2>
+                    <p class="notice">
+                        위로/아래로 버튼을 눌러 MP3로 합칠 순서를 조정하세요.
+                    </p>
+
+                    <ul id="mergeFileList" class="merge-file-list"></ul>
+
+                    <button id="mergeButton" class="submit-button" type="button">
+                        이 순서대로 MP3 합치기
+                    </button>
+                </section>
+            </form>
+
+            <section id="mergeResultSection" class="result-section" style="display: none;">
+                <div class="status-card">
+                    <p id="mergeStatusStep" class="status-step">대기 중</p>
+                    <p id="mergeStatusMessage" class="status-message">작업을 기다리고 있습니다.</p>
+
+                    <div class="progress-wrapper">
+                        <div id="mergeProgressBar" class="progress-bar"></div>
+                    </div>
+                    <div id="mergeProgressText" class="progress-text">0%</div>
+                </div>
+
+                <h2 id="mergeDownloadTitle" class="section-title" style="display: none;">다운로드</h2>
+                <ul id="mergeDownloadList" class="download-list"></ul>
+
+                <a id="mergeResetLink" class="reset-link" href="/merge">새 병합 작업하기</a>
+            </section>
+        </div>
+    </main>
+
+    <script src="/static/merge.js?v=1"></script>
+</body>
+</html>

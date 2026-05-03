@@ -289,3 +289,64 @@ input[type="file"] {
         grid-template-columns: 1fr;
     }
 }
+
+.merge-file-list {
+    padding: 0;
+    margin: 18px 0 24px;
+    list-style: none;
+}
+
+.merge-file-item {
+    display: grid;
+    grid-template-columns: 48px 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 1px solid #e1e5ef;
+    border-radius: 12px;
+    background: #f7f8fc;
+}
+
+.merge-file-order {
+    font-weight: 800;
+    color: #4058d8;
+}
+
+.merge-file-name {
+    font-weight: 700;
+    color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.order-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 10px;
+    background: #eef3ff;
+    color: #4058d8;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.order-button:hover {
+    background: #dfe8ff;
+}
+
+.order-button:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+    .merge-file-item {
+        grid-template-columns: 40px 1fr;
+    }
+
+    .order-button {
+        grid-column: span 1;
+    }
+}
