@@ -58,22 +58,6 @@ docs
    └─ navigation-menu.png
 ```
 
-### 단일 파일 변환 페이지
-
-![Transcriber main page](docs/images/transcriber-main.png)
-
-### 받아쓰기 진행 화면
-
-![Transcription progress](docs/images/transcription-progress.png)
-
-### 여러 파일 MP3 병합 페이지
-
-![MP3 merge page](docs/images/merge-page.png)
-
-### 네비게이션 메뉴
-
-![Navigation menu](docs/images/navigation-menu.png)
-
 ---
 
 ## 기술 스택
