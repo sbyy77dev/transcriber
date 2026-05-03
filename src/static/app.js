@@ -249,3 +249,30 @@ actionButtons.forEach((button) => {
         startJob(button.dataset.action, button);
     });
 });
+
+function setupNavigationMenu() {
+    const menuButton = document.getElementById("menuButton");
+    const closeMenuButton = document.getElementById("closeMenuButton");
+    const sideMenu = document.getElementById("sideMenu");
+    const menuOverlay = document.getElementById("menuOverlay");
+
+    if (!menuButton || !closeMenuButton || !sideMenu || !menuOverlay) {
+        return;
+    }
+
+    function openMenu() {
+        sideMenu.classList.add("open");
+        menuOverlay.classList.add("open");
+    }
+
+    function closeMenu() {
+        sideMenu.classList.remove("open");
+        menuOverlay.classList.remove("open");
+    }
+
+    menuButton.addEventListener("click", openMenu);
+    closeMenuButton.addEventListener("click", closeMenu);
+    menuOverlay.addEventListener("click", closeMenu);
+}
+
+setupNavigationMenu();

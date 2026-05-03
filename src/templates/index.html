@@ -3,10 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Transcriber</title>
-    <link rel="stylesheet" href="/static/styles.css?v=2">
+    <link rel="stylesheet" href="/static/styles.css?v=4">
 </head>
 
 <body>
+    <nav class="top-menu">
+        <button id="menuButton" class="menu-button" type="button" aria-label="메뉴 열기">
+            ☰
+        </button>
+
+        <div id="sideMenu" class="side-menu">
+            <div class="side-menu-header">
+                <strong>Transcriber</strong>
+                <button id="closeMenuButton" class="close-menu-button" type="button">×</button>
+            </div>
+
+            <a href="/" class="side-menu-link active">단일 파일 변환/받아쓰기</a>
+            <a href="/merge" class="side-menu-link">여러 파일 MP3 병합</a>
+        </div>
+
+        <div id="menuOverlay" class="menu-overlay"></div>
+    </nav>
     <main class="page">
         <div class="container">
             <h1 class="title">Transcriber</h1>
@@ -100,6 +117,6 @@
         </div>
     </main>
 
-    <script src="/static/app.js?v=2"></script>
+    <script src="/static/app.js?v=3"></script>
 </body>
 </html>
