@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.config import INPUT_DIR, OUTPUT_DIR, TEMP_DIR, ensure_directories
 from src.services.audio_service import extract_audio_to_mp3, extract_audio_to_wav
+from src.services.merge_service import convert_file_to_mp3, merge_mp3_files
 from src.services.transcription_service import transcribe_audio_to_txt
 
 
@@ -19,6 +20,9 @@ templates = Jinja2Templates(directory="src/templates")
 
 jobs: dict[str, dict] = {}
 jobs_lock = Lock()
+
+merge_jobs: dict[str, dict] = {}
+merge_jobs_lock = Lock()
 
 
 def is_valid_uuid_hex(value: str) -> bool:
@@ -41,11 +45,20 @@ def is_faster_model(model_name: str) -> bool:
 
 def update_job(job_id: str, **kwargs) -> None:
     """
-    작업 상태를 갱신합니다.
+    단일 파일 변환/받아쓰기 작업 상태를 갱신합니다.
     """
     with jobs_lock:
         if job_id in jobs:
             jobs[job_id].update(kwargs)
+
+
+def update_merge_job(job_id: str, **kwargs) -> None:
+    """
+    여러 파일 MP3 병합 작업 상태를 갱신합니다.
+    """
+    with merge_jobs_lock:
+        if job_id in merge_jobs:
+            merge_jobs[job_id].update(kwargs)
 
 
 def append_transcript(job_id: str, line: str) -> None:
@@ -69,7 +82,6 @@ def append_transcript(job_id: str, line: str) -> None:
         current_count = jobs[job_id].get("segment_count", 0)
         jobs[job_id]["segment_count"] = current_count + 1
 
-        # 정확한 퍼센트는 아니지만, 받아쓰기 중이라는 체감을 주기 위한 단계형 진행률입니다.
         current_progress = jobs[job_id].get("progress", 55)
         if current_progress < 90:
             jobs[job_id]["progress"] = current_progress + 2
@@ -92,6 +104,9 @@ def cleanup_generated_files(file_id: str) -> None:
     with jobs_lock:
         jobs.pop(file_id, None)
 
+    with merge_jobs_lock:
+        merge_jobs.pop(file_id, None)
+
 
 def process_job(
     job_id: str,
@@ -104,15 +119,7 @@ def process_job(
     model_name: str,
 ) -> None:
     """
-    별도 스레드에서 실제 변환/받아쓰기 작업을 수행합니다.
-
-    기존 Whisper 모델:
-        base / small / medium
-        -> 단계 상태만 표시하고 완료 후 전체 받아쓰기 결과 표시
-
-    faster-whisper 모델:
-        faster-base / faster-small / faster-medium
-        -> segment가 생성되는 대로 화면에 한 줄씩 표시
+    별도 스레드에서 단일 파일 변환/받아쓰기 작업을 수행합니다.
     """
     try:
         update_job(
@@ -185,7 +192,6 @@ def process_job(
                 on_segment=lambda line: append_transcript(job_id, line),
             )
 
-            # 혹시 마지막 저장본 기준으로 누락이 있으면 최종 txt를 다시 읽어 반영합니다.
             final_transcript = txt_file.read_text(encoding="utf-8")
 
             update_job(
@@ -236,11 +242,92 @@ def process_job(
         )
 
 
+def process_merge_job(
+    job_id: str,
+    input_files: list[Path],
+    output_file: Path,
+) -> None:
+    """
+    별도 스레드에서 여러 파일을 순서대로 MP3로 변환한 뒤 하나로 병합합니다.
+    """
+    try:
+        total_files = len(input_files)
+
+        if total_files == 0:
+            raise ValueError("병합할 파일이 없습니다.")
+
+        update_merge_job(
+            job_id,
+            status="running",
+            progress=5,
+            step="파일 업로드 완료",
+            message="MP3 병합 작업을 시작합니다.",
+        )
+
+        converted_mp3_files: list[Path] = []
+
+        for index, input_file in enumerate(input_files, start=1):
+            progress = 10 + int((index - 1) / total_files * 65)
+
+            update_merge_job(
+                job_id,
+                progress=progress,
+                step=f"{index}/{total_files}번 파일 변환 중",
+                message=f"{input_file.name} 파일에서 MP3를 추출하고 있습니다.",
+            )
+
+            converted_mp3 = TEMP_DIR / f"{job_id}_{index:03d}.mp3"
+            convert_file_to_mp3(input_file, converted_mp3)
+            converted_mp3_files.append(converted_mp3)
+
+        update_merge_job(
+            job_id,
+            progress=80,
+            step="MP3 병합 중",
+            message="변환된 MP3 파일들을 순서대로 하나로 합치고 있습니다.",
+        )
+
+        list_file = TEMP_DIR / f"{job_id}_merge_list.txt"
+
+        merge_mp3_files(
+            mp3_files=converted_mp3_files,
+            output_file=output_file,
+            list_file=list_file,
+        )
+
+        update_merge_job(
+            job_id,
+            status="complete",
+            progress=100,
+            step="완료",
+            message="MP3 병합이 완료되었습니다.",
+            merged_mp3_url=f"/download/{output_file.name}",
+        )
+
+    except Exception as error:
+        update_merge_job(
+            job_id,
+            status="failed",
+            progress=100,
+            step="오류 발생",
+            message=str(error),
+        )
+
+
 @app.get("/")
 def home(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
+        context={},
+    )
+
+
+@app.get("/merge")
+def merge_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="merge.html",
         context={},
     )
 
@@ -302,6 +389,63 @@ async def create_job(
     )
 
 
+@app.post("/merge/jobs")
+async def create_merge_job(
+    files: list[UploadFile] = File(...),
+):
+    ensure_directories()
+
+    if not files:
+        return JSONResponse(
+            {
+                "error": "업로드된 파일이 없습니다.",
+            },
+            status_code=400,
+        )
+
+    job_id = uuid4().hex
+    input_files: list[Path] = []
+
+    for index, file in enumerate(files, start=1):
+        original_suffix = Path(file.filename).suffix
+        input_file = INPUT_DIR / f"{job_id}_{index:03d}{original_suffix}"
+
+        content = await file.read()
+        input_file.write_bytes(content)
+
+        input_files.append(input_file)
+
+    output_file = OUTPUT_DIR / f"{job_id}_merged.mp3"
+
+    with merge_jobs_lock:
+        merge_jobs[job_id] = {
+            "job_id": job_id,
+            "status": "queued",
+            "progress": 0,
+            "step": "대기 중",
+            "message": "MP3 병합 작업을 준비하고 있습니다.",
+            "merged_mp3_url": None,
+            "cleanup_url": f"/cleanup/{job_id}",
+        }
+
+    worker = Thread(
+        target=process_merge_job,
+        args=(
+            job_id,
+            input_files,
+            output_file,
+        ),
+        daemon=True,
+    )
+    worker.start()
+
+    return JSONResponse(
+        {
+            "job_id": job_id,
+        }
+    )
+
+
 @app.get("/jobs/{job_id}")
 def get_job_status(job_id: str):
     with jobs_lock:
@@ -321,6 +465,30 @@ def get_job_status(job_id: str):
                 "segment_count": 0,
                 "mp3_url": None,
                 "txt_url": None,
+                "cleanup_url": None,
+            },
+            status_code=404,
+        )
+
+    return JSONResponse(job)
+
+
+@app.get("/merge/jobs/{job_id}")
+def get_merge_job_status(job_id: str):
+    with merge_jobs_lock:
+        job = merge_jobs.get(job_id)
+
+        if job is not None:
+            job = job.copy()
+
+    if job is None:
+        return JSONResponse(
+            {
+                "status": "not_found",
+                "progress": 100,
+                "step": "작업 없음",
+                "message": "병합 작업 정보를 찾을 수 없습니다.",
+                "merged_mp3_url": None,
                 "cleanup_url": None,
             },
             status_code=404,
