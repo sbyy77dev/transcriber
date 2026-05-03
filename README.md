@@ -56,7 +56,7 @@ docs
    ├─ transcription-progress.png
    ├─ merge-page.png
    └─ navigation-menu.png
-
+```
 
 ### 단일 파일 변환 페이지
 
